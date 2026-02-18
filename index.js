@@ -1,14 +1,13 @@
 import express from "express";
 import multer from "multer";
 import ffmpeg from "fluent-ffmpeg";
-import ffmpegPath from "ffmpeg-static";
 import fs from "fs";
 import path from "path";
 
 const app = express();
-const upload = multer({ dest: "temp/" });
+const upload = multer({ dest: "/tmp/" });
 
-ffmpeg.setFfmpegPath(ffmpegPath);
+ffmpeg.setFfmpegPath("ffmpeg");
 
 app.post("/stitch",
   upload.fields([
