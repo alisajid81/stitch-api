@@ -30,9 +30,9 @@ app.post("/stitch",
 
       const audioPath = req.files["audio"][0].path;
 
-      const concatFilePath = "tmp/concat.txt";
-      const outputVideoPath = "tmp/merged.mp4";
-      const finalOutputPath = "tmp/final.mp4";
+      const concatFilePath = "/tmp/concat.txt";
+      const outputVideoPath = "/tmp/merged.mp4";
+      const finalOutputPath = "/tmp/final.mp4";
 
       // créer le fichier concat
       const concatContent = segments
