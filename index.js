@@ -36,8 +36,10 @@ app.post("/stitch",
 
       // créer le fichier concat
       const concatContent = segments
-  .map(file => `file '${file}'`)
+  .map(file => `file '${path.resolve(file)}'`)
   .join("\n");
+console.log("Segments paths:", segments);
+console.log("Concat content:\n", concatContent);
 
 
       fs.writeFileSync(concatFilePath, concatContent);
