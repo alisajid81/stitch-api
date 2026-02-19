@@ -5,7 +5,15 @@ import fs from "fs";
 import path from "path";
 
 const app = express();
-const upload = multer({ dest: "/tmp/" });
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: "/tmp/",
+    filename: (req, file, cb) => {
+      cb(null, Date.now() + "-" + file.fieldname + ".mp4");
+    }
+  })
+});
+
 
 ffmpeg.setFfmpegPath("ffmpeg");
 
