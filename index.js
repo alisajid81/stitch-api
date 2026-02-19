@@ -14,6 +14,10 @@ const upload = multer({
   })
 });
 
+segments.forEach(file => {
+  const stats = fs.statSync(file);
+  console.log("File:", file, "Size:", stats.size);
+});
 
 ffmpeg.setFfmpegPath("ffmpeg");
 
