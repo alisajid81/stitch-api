@@ -36,8 +36,9 @@ app.post("/stitch",
 
       // créer le fichier concat
       const concatContent = segments
-  .map(file => `file '${path.resolve(file)}'`)
+  .map(file => `file '${file}'`)
   .join("\n");
+
 console.log("Segments paths:", segments);
 console.log("Concat content:\n", concatContent);
 
