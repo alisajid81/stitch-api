@@ -70,7 +70,12 @@ await new Promise((resolve, reject) => {
   ffmpeg()
     .input(concatFilePath)
     .inputOptions(["-f concat", "-safe 0"])
-    .outputOptions(["-c copy"])
+    .outputOptions([
+  "-c:v libx264",
+  "-preset veryfast",
+  "-crf 23",
+  "-pix_fmt yuv420p"
+])
     .save(outputVideoPath)
     .on("end", resolve)
     .on("error", reject);
