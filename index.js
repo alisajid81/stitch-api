@@ -46,16 +46,31 @@ console.log("Concat content:\n", concatContent);
       fs.writeFileSync(concatFilePath, concatContent);
 
       // 1️⃣ concaténer les vidéos
-ffmpeg()
-  .input(concatFilePath)
-  .inputOptions(["-f concat", "-safe 0"])
+const ffmpegCommand = ffmpeg();
+
+segments.forEach(file => {
+  ffmpegCommand.input(file);
+});
+
+ffmpegCommand
+  .complexFilter([
+    {
+      filter: "concat",
+      options: {
+        n: segments.length,
+        v: 1,
+        a: 0
+      }
+    }
+  ])
   .outputOptions([
     "-c:v libx264",
     "-preset veryfast",
     "-crf 23",
     "-pix_fmt yuv420p"
   ])
-  .save(outputVideoPath)
+  .save(outputVideoPath);
+
 
 
       // 2️⃣ ajouter l’audio
