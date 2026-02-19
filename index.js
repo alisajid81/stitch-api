@@ -89,7 +89,7 @@ await new Promise((resolve, reject) => {
   ffmpeg(outputVideoPath)
     .input(audioPath)
     .complexFilter([
-      "[0:a]volume=0.1[a1]",
+      "[0:a]volume=0.2[a1]",
       "[1:a]volume=1.0[a2]",
       "[a1][a2]amix=inputs=2:duration=shortest[aout]"
     ])
