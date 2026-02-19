@@ -14,11 +14,6 @@ const upload = multer({
   })
 });
 
-segments.forEach(file => {
-  const stats = fs.statSync(file);
-  console.log("File:", file, "Size:", stats.size);
-});
-
 ffmpeg.setFfmpegPath("ffmpeg");
 
 app.post("/stitch",
@@ -34,13 +29,24 @@ app.post("/stitch",
   ]),
   async (req, res) => {
     try {
-      const segments = [];
+const segments = [];
 
-      for (let i = 1; i <= 7; i++) {
-        segments.push(req.files[`segment_${i}`][0].path);
-      }
+for (let i = 1; i <= 7; i++) {
+  segments.push(req.files[`segment_${i}`][0].path);
+}
 
-      const audioPath = req.files["audio"][0].path;
+const audioPath = req.files["audio"][0].path;
+
+console.log("Segments paths:", segments);
+
+segments.forEach(file => {
+  const stats = fs.statSync(file);
+  console.log("Video File:", file, "Size:", stats.size);
+});
+
+const audioStats = fs.statSync(audioPath);
+console.log("Audio File:", audioPath, "Size:", audioStats.size);
+
 
       const concatFilePath = "/tmp/concat.txt";
       const outputVideoPath = "/tmp/merged.mp4";
