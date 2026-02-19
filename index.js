@@ -46,15 +46,17 @@ console.log("Concat content:\n", concatContent);
       fs.writeFileSync(concatFilePath, concatContent);
 
       // 1️⃣ concaténer les vidéos
-      await new Promise((resolve, reject) => {
-        ffmpeg()
-          .input(concatFilePath)
-          .inputOptions(["-f concat", "-safe 0"])
-          .outputOptions("-c copy")
-          .save(outputVideoPath)
-          .on("end", resolve)
-          .on("error", reject);
-      });
+ffmpeg()
+  .input(concatFilePath)
+  .inputOptions(["-f concat", "-safe 0"])
+  .outputOptions([
+    "-c:v libx264",
+    "-preset veryfast",
+    "-crf 23",
+    "-pix_fmt yuv420p"
+  ])
+  .save(outputVideoPath)
+
 
       // 2️⃣ ajouter l’audio
 await new Promise((resolve, reject) => {
