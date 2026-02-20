@@ -1,7 +1,0 @@
-file 'C:\Users\Samsung\Documents\n8n\stitch-api\temp\43b8ca1102ce9e8c0a5c8a1b5060d9a5'
-file 'C:\Users\Samsung\Documents\n8n\stitch-api\temp\0e3202f5861a4255ecd1e1e44a0313f2'
-file 'C:\Users\Samsung\Documents\n8n\stitch-api\temp\10d9282b368a17100a8a954e023232f6'
-file 'C:\Users\Samsung\Documents\n8n\stitch-api\temp\cf442f81fdba0aa7d7f4accce008afb9'
-file 'C:\Users\Samsung\Documents\n8n\stitch-api\temp\722ab1e436b1e40146c70aed9d599e91'
-file 'C:\Users\Samsung\Documents\n8n\stitch-api\temp\99a3323dadd8518fda72561c50be8809'
-file 'C:\Users\Samsung\Documents\n8n\stitch-api\temp\5e6e53052706169a4674714e43fb9f04'

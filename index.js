@@ -67,19 +67,21 @@ await new Promise((resolve, reject) => {
   ffmpeg()
     .input(concatFilePath)
     .inputOptions(["-f concat", "-safe 0"])
+    .input(audioPath)
     .outputOptions([
-      "-vsync 2",
+      "-map 0:v",
+      "-map 1:a",
       "-c:v libx264",
       "-preset veryfast",
       "-crf 23",
       "-pix_fmt yuv420p",
+      "-shortest",
       "-movflags +faststart"
     ])
-    .save(outputVideoPath)
-    .on("start", cmd => console.log("Concat CMD:", cmd))
-    .on("stderr", line => console.log("FFmpeg:", line))
+    .on("stderr", line => console.log(line))
+    .on("error", reject)
     .on("end", resolve)
-    .on("error", reject);
+    .save(finalOutputPath);
 });
 
       // 2️⃣ ajouter l’audio
