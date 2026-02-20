@@ -24,18 +24,15 @@ app.post("/stitch",
     { name: "segment_1", maxCount: 1 },
     { name: "segment_2", maxCount: 1 },
     { name: "segment_3", maxCount: 1 },
-    { name: "segment_4", maxCount: 1 },
-    { name: "segment_5", maxCount: 1 },
-    { name: "segment_6", maxCount: 1 },
-    { name: "segment_7", maxCount: 1 }
+    { name: "segment_4", maxCount: 1 }
   ]),
   async (req, res) => {
     try {
-const segments = [];
 
-for (let i = 1; i <= 7; i++) {
-  segments.push(req.files[`segment_${i}`][0].path);
-}
+const segments = Object.keys(req.files)
+  .filter(key => key.startsWith("segment_"))
+  .sort()
+  .map(key => req.files[key][0].path);
 
 const audioPath = req.files["audio"][0].path;
 
@@ -81,9 +78,6 @@ await new Promise((resolve, reject) => {
     .on("error", reject);
 });
 
-
-
-
       // 2️⃣ ajouter l’audio
 await new Promise((resolve, reject) => {
   ffmpeg(outputVideoPath)
@@ -103,9 +97,15 @@ await new Promise((resolve, reject) => {
     .on("error", reject);
 });
 
-
-
       res.download(finalOutputPath);
+res.download(finalOutputPath, () => {
+  try {
+    [...segments, audioPath, concatFilePath, outputVideoPath, finalOutputPath]
+      .forEach(file => fs.existsSync(file) && fs.unlinkSync(file));
+  } catch (e) {
+    console.error("Cleanup error:", e);
+  }
+});
 
     } catch (error) {
       console.error(error);
@@ -118,5 +118,3 @@ app.listen(3000, "0.0.0.0", () => {
   console.log("Serveur Stitch démarré sur port 3000");
 });
 
-const { execSync } = require('child_process');
-console.log(execSync('df -h').toString());
