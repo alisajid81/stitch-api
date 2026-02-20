@@ -89,7 +89,7 @@ await new Promise((resolve, reject) => {
   ffmpeg(outputVideoPath)
     .input(audioPath)
     .complexFilter([
-      "[0:a]volume=0.2[a1]",
+      "[0:a]volume=0.3[a1]",
       "[1:a]volume=1.0[a2]",
       "[a1][a2]amix=inputs=2:duration=shortest[aout]"
     ])
@@ -117,3 +117,6 @@ await new Promise((resolve, reject) => {
 app.listen(3000, "0.0.0.0", () => {
   console.log("Serveur Stitch démarré sur port 3000");
 });
+
+const { execSync } = require('child_process');
+console.log(execSync('df -h').toString());
