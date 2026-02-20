@@ -68,12 +68,16 @@ await new Promise((resolve, reject) => {
     .input(concatFilePath)
     .inputOptions(["-f concat", "-safe 0"])
     .outputOptions([
-  "-c:v libx264",
-  "-preset veryfast",
-  "-crf 23",
-  "-pix_fmt yuv420p"
-])
+      "-vsync 2",
+      "-c:v libx264",
+      "-preset veryfast",
+      "-crf 23",
+      "-pix_fmt yuv420p",
+      "-movflags +faststart"
+    ])
     .save(outputVideoPath)
+    .on("start", cmd => console.log("Concat CMD:", cmd))
+    .on("stderr", line => console.log("FFmpeg:", line))
     .on("end", resolve)
     .on("error", reject);
 });
@@ -87,11 +91,15 @@ await new Promise((resolve, reject) => {
       "[1:a]volume=1.0[a2]",
       "[a1][a2]amix=inputs=2:duration=shortest[aout]"
     ])
-    .outputOptions([
-      "-map 0:v:0",
-      "-map [aout]",
-      "-c:v copy"
-    ])
+.outputOptions([
+  "-map 0:v",
+  "-map [aout]",
+  "-c:v libx264",
+  "-preset veryfast",
+  "-crf 23",
+  "-pix_fmt yuv420p"
+])
+
     .save(finalOutputPath)
     .on("end", resolve)
     .on("error", reject);
