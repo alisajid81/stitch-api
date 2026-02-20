@@ -57,6 +57,7 @@ app.post("/stitch",
         console.log("Audio File:", audioPath, "Size:", audioStats.size);
 
         const concatFilePath = "/tmp/concat.txt";
+        const outputVideoPath = "/tmp/merged.mp4";
         const finalOutputPath = "/tmp/final.mp4";
 
         // créer le fichier concat
@@ -69,7 +70,7 @@ app.post("/stitch",
 
         fs.writeFileSync(concatFilePath, concatContent);
 
-        // 1️⃣ Concat + ajout audio en une seule passe
+        // 1️⃣ concaténer les vidéos
         await new Promise((resolve, reject) => {
             ffmpeg()
             .input(concatFilePath)
@@ -91,10 +92,33 @@ app.post("/stitch",
             .save(finalOutputPath);
         });
 
-        // Télécharger + cleanup
+        // 2️⃣ ajouter l’audio
+        await new Promise((resolve, reject) => {
+            ffmpeg(outputVideoPath)
+            .input(audioPath)
+            .complexFilter([
+                    "[0:a]volume=0.3[a1]",
+                    "[1:a]volume=1.0[a2]",
+                    "[a1][a2]amix=inputs=2:duration=shortest[aout]"
+                ])
+            .outputOptions([
+                    "-map 0:v",
+                    "-map [aout]",
+                    "-c:v libx264",
+                    "-preset veryfast",
+                    "-crf 23",
+                    "-pix_fmt yuv420p"
+                ])
+
+            .save(finalOutputPath)
+            .on("end", resolve)
+            .on("error", reject);
+        });
+
+        res.download(finalOutputPath);
         res.download(finalOutputPath, () => {
             try {
-                [...segments, audioPath, concatFilePath, finalOutputPath]
+                [...segments, audioPath, concatFilePath, outputVideoPath, finalOutputPath]
                 .forEach(file => fs.existsSync(file) && fs.unlinkSync(file));
             } catch (e) {
                 console.error("Cleanup error:", e);
