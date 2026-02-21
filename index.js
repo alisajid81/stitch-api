@@ -2,21 +2,31 @@ import express from "express";
 import multer from "multer";
 import ffmpeg from "fluent-ffmpeg";
 import fs from "fs";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 // ============================
 // CONFIG
 // ============================
 
 const PORT = process.env.PORT || 3000;
-const PUBLIC_DIR = "/tmp/public";
-const EXPIRATION_MINUTES = 30;
 
-if (!fs.existsSync(PUBLIC_DIR)) {
-  fs.mkdirSync(PUBLIC_DIR, { recursive: true });
+if (
+  !process.env.R2_ACCOUNT_ID ||
+  !process.env.R2_ACCESS_KEY_ID ||
+  !process.env.R2_SECRET_ACCESS_KEY ||
+  !process.env.R2_BUCKET
+) {
+  throw new Error("R2 environment variables missing");
 }
 
-// Stockage expiration en mémoire
-const fileExpirations = new Map();
+const s3 = new S3Client({
+  region: "auto",
+  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+  },
+});
 
 // ============================
 // APP INIT
@@ -38,8 +48,8 @@ const upload = multer({
     destination: "/tmp/",
     filename: (req, file, cb) => {
       cb(null, Date.now() + "-" + file.fieldname + ".mp4");
-    }
-  })
+    },
+  }),
 });
 
 ffmpeg.setFfmpegPath("ffmpeg");
@@ -55,7 +65,7 @@ app.post(
     { name: "segment_1", maxCount: 1 },
     { name: "segment_2", maxCount: 1 },
     { name: "segment_3", maxCount: 1 },
-    { name: "segment_4", maxCount: 1 }
+    { name: "segment_4", maxCount: 1 },
   ]),
   async (req, res) => {
     try {
@@ -64,29 +74,27 @@ app.post(
       }
 
       const segments = Object.keys(req.files)
-        .filter(key => key.startsWith("segment_"))
+        .filter((key) => key.startsWith("segment_"))
         .sort()
-        .map(key => req.files[key][0].path);
+        .map((key) => req.files[key][0].path);
 
       if (segments.length === 0) {
         return res.status(400).json({ error: "Aucun segment reçu" });
       }
 
       const audioPath = req.files["audio"][0].path;
-
       const concatFilePath = "/tmp/concat.txt";
+      const outputPath = `/tmp/final-${Date.now()}.mp4`;
 
-      const fileName = `video-${Date.now()}.mp4`;
-      const finalOutputPath = `${PUBLIC_DIR}/${fileName}`;
-
+      // Create concat file
       const concatContent = segments
-        .map(file => `file '${file}'`)
+        .map((file) => `file '${file}'`)
         .join("\n");
 
       fs.writeFileSync(concatFilePath, concatContent);
 
       // ============================
-      // Concat + Audio (1 passe)
+      // FFMPEG MERGE
       // ============================
 
       await new Promise((resolve, reject) => {
@@ -102,84 +110,59 @@ app.post(
             "-crf 23",
             "-pix_fmt yuv420p",
             "-shortest",
-            "-movflags +faststart"
+            "-movflags +faststart",
           ])
           .on("error", reject)
           .on("end", resolve)
-          .save(finalOutputPath);
+          .save(outputPath);
       });
 
       // ============================
-      // Expiration setup
+      // UPLOAD TO R2
       // ============================
 
-      const expireAt = Date.now() + EXPIRATION_MINUTES * 60 * 1000;
-      fileExpirations.set(fileName, expireAt);
+      const fileName = `video-${Date.now()}.mp4`;
+      const fileBuffer = fs.readFileSync(outputPath);
 
-      const baseUrl = `${req.protocol}://${req.get("host")}`;
-      const videoUrl = `${baseUrl}/videos/${fileName}`;
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: process.env.R2_BUCKET,
+          Key: fileName,
+          Body: fileBuffer,
+          ContentType: "video/mp4",
+        })
+      );
 
-      // Cleanup fichiers temporaires upload
-      [...segments, audioPath, concatFilePath].forEach(file => {
-        if (fs.existsSync(file)) fs.unlinkSync(file);
+      const publicUrl = `https://${process.env.R2_BUCKET}.${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${fileName}`;
+
+      // ============================
+      // CLEANUP LOCAL FILES
+      // ============================
+
+      [...segments, audioPath, concatFilePath, outputPath].forEach((file) => {
+        if (fs.existsSync(file)) {
+          try {
+            fs.unlinkSync(file);
+          } catch (e) {
+            console.error("Cleanup error:", e);
+          }
+        }
       });
+
+      // ============================
+      // RESPONSE
+      // ============================
 
       res.json({
         success: true,
-        url: videoUrl,
-        expires_in_minutes: EXPIRATION_MINUTES
+        url: publicUrl,
       });
-
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: "Erreur Stitch" });
     }
   }
 );
-
-// ============================
-// VIDEO ACCESS WITH EXPIRATION
-// ============================
-
-app.get("/videos/:file", (req, res) => {
-  const fileName = req.params.file;
-  const filePath = `${PUBLIC_DIR}/${fileName}`;
-
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ error: "Fichier introuvable" });
-  }
-
-  const expireAt = fileExpirations.get(fileName);
-
-  if (!expireAt || Date.now() > expireAt) {
-    try {
-      fs.unlinkSync(filePath);
-    } catch (e) {}
-    fileExpirations.delete(fileName);
-    return res.status(410).json({ error: "Lien expiré" });
-  }
-
-  res.sendFile(filePath);
-});
-
-// ============================
-// AUTO CLEANUP (sécurité)
-// ============================
-
-setInterval(() => {
-  const now = Date.now();
-
-  for (const [fileName, expireAt] of fileExpirations.entries()) {
-    if (now > expireAt) {
-      const filePath = `${PUBLIC_DIR}/${fileName}`;
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-      fileExpirations.delete(fileName);
-      console.log("Fichier expiré supprimé:", fileName);
-    }
-  }
-}, 5 * 60 * 1000);
 
 // ============================
 // START SERVER
