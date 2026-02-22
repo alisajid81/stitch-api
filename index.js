@@ -133,8 +133,7 @@ app.post(
         })
       );
 
-      const publicUrl = `https://${process.env.R2_BUCKET}.${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${fileName}`;
-
+	  const publicUrl = `${process.env.R2_PUBLIC_URL}/${fileName}`;
       // ============================
       // CLEANUP LOCAL FILES
       // ============================
